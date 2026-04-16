@@ -2162,7 +2162,7 @@ function renderLB(data) {
     }
 
     // Dead button
-    var dBtn = '<button type="button" onclick="toggleDead('+pi+')" style="font-family:Orbitron,monospace;font-size:8px;padding:4px 8px;border:1px solid '+(isDead?'var(--red)':'var(--border)')+';color:'+(isDead?'var(--red)':'var(--muted)')+';background:none;cursor:pointer;border-radius:3px;-webkit-tap-highlight-color:transparent;">'+(isDead?'💀 Revive':'☠️ Kill')+'</button>';
+    var dBtn = '<button type="button" data-action="kill" data-pi="'+pi+'" style="font-family:Orbitron,monospace;font-size:9px;letter-spacing:1px;padding:6px 12px;border:1px solid '+(isDead?'var(--red)':'var(--border)')+';color:'+(isDead?'var(--red)':'var(--muted)')+';background:none;cursor:pointer;border-radius:3px;-webkit-tap-highlight-color:transparent;touch-action:manipulation;">'+(isDead?'💀 Revive':'☠️ Kill')+'</button>';
 
     // Points controls
     var ptsControls = '<div class="lb-detail-pts-row">'
@@ -2294,6 +2294,11 @@ function handleTap(el) {
     if (row) row.classList.toggle("expanded");
     return;
 
+  } else if (action === "kill") {
+    var pi4 = parseInt(t.getAttribute("data-pi"), 10);
+    window.toggleDead(pi4);
+    return;
+
   } else if (action === "lb") {
     if (!gmUnlocked) return;
     if (t.disabled || t.getAttribute("disabled") !== null) return;
@@ -2360,17 +2365,12 @@ function handleTap(el) {
 }
 
 var _lastTapTime = 0;
-var _lastTapTarget = null;
 
 function attachTap(id) {
   var el = document.getElementById(id);
   if (!el) return;
-  // Remove old listeners by cloning
-  var newEl = el.cloneNode(true);
-  el.parentNode.replaceChild(newEl, el);
-  el = newEl;
 
-  // Touchend for iOS/Android (primary)
+  // Touchend for iOS/Android
   el.addEventListener("touchend", function(e) {
     e.preventDefault();
     var touch = e.changedTouches[0];
@@ -2378,14 +2378,12 @@ function attachTap(id) {
     var target = document.elementFromPoint(touch.clientX, touch.clientY);
     if (!target) return;
     _lastTapTime = Date.now();
-    _lastTapTarget = target;
     handleTap(target);
   }, {passive: false});
 
-  // Click for PC only — ignore if just fired via touch
+  // Click for PC only — skip if touch just fired
   el.addEventListener("click", function(e) {
-    var now = Date.now();
-    if (now - _lastTapTime < 500) return; // ignore click after touch
+    if (Date.now() - _lastTapTime < 500) return;
     handleTap(e.target);
   }, false);
 }
