@@ -2359,19 +2359,35 @@ function handleTap(el) {
   }
 }
 
+var _lastTapTime = 0;
+var _lastTapTarget = null;
+
 function attachTap(id) {
   var el = document.getElementById(id);
   if (!el) return;
-  // Click for PC
-  el.addEventListener("click", function(e) { handleTap(e.target); }, false);
-  // Touchend for iOS/Android
+  // Remove old listeners by cloning
+  var newEl = el.cloneNode(true);
+  el.parentNode.replaceChild(newEl, el);
+  el = newEl;
+
+  // Touchend for iOS/Android (primary)
   el.addEventListener("touchend", function(e) {
     e.preventDefault();
     var touch = e.changedTouches[0];
     if (!touch) return;
     var target = document.elementFromPoint(touch.clientX, touch.clientY);
-    if (target) handleTap(target);
+    if (!target) return;
+    _lastTapTime = Date.now();
+    _lastTapTarget = target;
+    handleTap(target);
   }, {passive: false});
+
+  // Click for PC only — ignore if just fired via touch
+  el.addEventListener("click", function(e) {
+    var now = Date.now();
+    if (now - _lastTapTime < 500) return; // ignore click after touch
+    handleTap(e.target);
+  }, false);
 }
 attachTap("lb-grid");
 attachTap("tr-grid");
